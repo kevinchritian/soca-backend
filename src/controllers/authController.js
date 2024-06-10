@@ -25,7 +25,7 @@ const login = async (req, res) => {
                 const result = {
                     token: token,
                     tokenType: 'Bearer',
-                    expiresIn: expiresIn,
+                    expiresIn: parseInt(expiresIn),
                 };
 
                 response.success(res, 'User berhasil login', result);

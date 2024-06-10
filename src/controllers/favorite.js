@@ -45,4 +45,36 @@ const addFavorite = async (req, res) => {
     }
 };
 
-module.exports = { favorite, addFavorite };
+const removeFavorite = async (req, res) => {
+    try {
+        const { id } = req.body;
+        const conn = await connection();
+        await conn.request()
+            .input('id', mssql.Int, id)
+            .input('userId', mssql.Int, req.user.id)
+            .query('UPDATE history SET isFavorite = 0 WHERE id = @id AND userId = @userId');
+        response.success(res, 'Remove favorite success');
+    } catch (error) {
+        response.internalError(res, error.message);
+    }
+};
+
+const detailResult = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const conn = await connection();
+        const result = await conn.request()
+            .input('id', mssql.Int, id)
+            .input('userId', mssql.Int, req.user.id)
+            .query('SELECT * FROM history WHERE id = @id AND userId = @userId');
+        if (result.recordset.length > 0) {
+            response.success(res, 'Get detail result success', result.recordset[0]);
+        } else {
+            response.error(res, 'Data not found', 404);
+        }
+    } catch (error) {
+        response.internalError(res, error.message);
+    }
+};
+
+module.exports = { favorite, addFavorite, removeFavorite, detailResult };
