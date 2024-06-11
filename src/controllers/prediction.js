@@ -1,9 +1,8 @@
-const { connection, mssql } = require('../config/database');
 const response = require('../Utils/response');
-const storage = require('../config/storage');
 const tf = require('@tensorflow/tfjs-node');
-const bucket = require('../config/storage');
-const { v4: uuid } = require('uuid');
+const { db } = require('../database/db');
+const { History } = require('../database/schema');
+const { uploadFile } = require('../config/storage');
 
 const predict = async (req, res) => {
     try {
@@ -37,52 +36,17 @@ const predict = async (req, res) => {
             confidenceScore: confidenceScore,
         }
 
-        await saveResult(req, result, image).then((value) => {
-            response.success(res, 'Prediction success', value);
-        }).catch((error) => {
-            throw new Error(error.message);
-        });
+        const resp = await saveResult(req, result, image);
+        response.success(res, 'Prediction success', resp);
     } catch (error) {
         response.internalError(res, error.message);
     }
 };
 
 const saveResult = async (req, result, image) => {
-    try {
-        // const imageUrl = await saveImage(req, result, image);
-        const conn = await connection();
-        const res = await conn.request()
-            .input('userId', mssql.Int, req.user.id)
-            .input('image', mssql.VarChar, image.originalname)
-            // .input('image', mssql.VarChar, imageUrl)
-            .input('label', mssql.VarChar, result.label)
-            .input('confidenceScore', mssql.Float, result.confidenceScore)
-            .input('createdAt', mssql.DateTime, new Date())
-            .query('INSERT INTO history (userId, label, confidenceScore, image, createdAt) OUTPUT inserted.* VALUES (@userId, @label, @confidenceScore, @image, @createdAt)');
-        
-        return res.recordset[0];
-    } catch (error) {
-        throw new Error(error.message);
-    }
-};
-
-const saveImage = async (req, result, image) => {
-    const blob = bucket.file('predictions/' + uuid() + '-' + image.originalname);
-    const blobStream = blob.createWriteStream({ resumable: false });
-
-    blobStream.on('error', (error) => {
-        throw new Error(error.message);
-    });
-
-    var imageUrl = '';
-
-    blobStream.on('finish', async () => {
-        imageUrl = `https://storage.googleapis.com/${bucket.name}/${blob.name}`;
-    });
-
-    blobStream.end(image.buffer);
-
-    return imageUrl;
+    const imageUrl = await uploadFile(image);
+    const history = await db.insert(History).values({ userId: req.user.id, label: result.label, confidenceScore: result.confidenceScore, image: imageUrl }).returning();
+    return history.at(0);
 };
 
 module.exports = { predict };
