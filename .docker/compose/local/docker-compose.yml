@@ -6,8 +6,6 @@ services:
       context: ../../..
       dockerfile: .docker/file/local/app/Dockerfile
     image: soca:local-latest
-    env_file:
-      - ../../../.env
     ports:
       - "8000:3000"
     volumes:

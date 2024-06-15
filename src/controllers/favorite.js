@@ -9,8 +9,8 @@ const favorite = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const offset = (page - 1) * perPage;
 
-        const favorite = await db.select().from(History).where(eq(History.userId, req.user.id), eq(History.isFavorite, true)).orderBy(desc(History.updatedAt)).limit(perPage).offset(offset);
-        const count = await db.select({ id: History.id }).from(History).where(eq(History.userId, req.user.id), eq(History.isFavorite, true));
+        const favorite = await db.select().from(History).where(and(eq(History.userId, req.user.id), eq(History.isFavorite, true))).orderBy(desc(History.updatedAt)).limit(perPage).offset(offset);
+        const count = await db.select({ id: History.id }).from(History).where(and(eq(History.userId, req.user.id), eq(History.isFavorite, true)));
         const meta = {
             currentPage: page,
             perPage: perPage,
@@ -31,7 +31,7 @@ const addFavorite = async (req, res) => {
             return response.error(res, 'Data not found');
         }
 
-        await db.update(History).set({ isFavorite: true }).where(eq(History.id, id), eq(History.userId, req.user.id));
+        await db.update(History).set({ isFavorite: true }).where(and(eq(History.id, id), eq(History.userId, req.user.id)));
         return response.success(res, 'Add favorite success');
     } catch (error) {
         response.internalError(res, error.message);
@@ -46,7 +46,7 @@ const removeFavorite = async (req, res) => {
             return response.error(res, 'Data not found');
         }
         history.isFavorite = false;
-        await db.update(History).set({ isFavorite: false }).where(eq(History.id, id), eq(History.userId, req.user.id));
+        await db.update(History).set({ isFavorite: false }).where(and(eq(History.id, id), eq(History.userId, req.user.id)));
         return response.success(res, 'Remove favorite success');
     } catch (error) {
         response.internalError(res, error.message);
