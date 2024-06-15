@@ -1,0 +1,7 @@
+.idea/
+.env
+/node_modules
+/build
+.DS_Store
+Thumbs.db
+/supabase
