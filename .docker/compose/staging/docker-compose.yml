@@ -5,7 +5,7 @@ services:
     build:
       context: ../../..
       dockerfile: .docker/file/local/app/Dockerfile
-    image: soca:local-latest
+    image: soca:staging-latest
     env_file:
       - ../../../.env
     ports:
