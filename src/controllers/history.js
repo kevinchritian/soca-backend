@@ -9,8 +9,8 @@ const history = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const offset = (page - 1) * perPage;
 
-        const histories = await db.select().from(History).where(eq(History.userId, req.user.id)).orderBy(desc(History.updatedAt)).limit(perPage).offset(offset);
-        const count = await db.select({ id: History.id }).from(History).where(eq(History.userId, req.user.id));
+        const histories = await db.select().from(History).where(eq(History.userId, req.user.id)).orderBy(desc(History.createdAt)).limit(perPage).offset(offset);
+        const count = await db.select({ id: History.id }).from(History).where(eq(History.userId, req.user.id)).orderBy(desc(History.createdAt));
         const meta = {
             currentPage: page,
             perPage: perPage,

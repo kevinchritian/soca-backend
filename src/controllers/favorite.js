@@ -10,7 +10,7 @@ const favorite = async (req, res) => {
         const offset = (page - 1) * perPage;
 
         const favorite = await db.select().from(History).where(and(eq(History.userId, req.user.id), eq(History.isFavorite, true))).orderBy(desc(History.updatedAt)).limit(perPage).offset(offset);
-        const count = await db.select({ id: History.id }).from(History).where(and(eq(History.userId, req.user.id), eq(History.isFavorite, true)));
+        const count = await db.select({ id: History.id }).from(History).where(and(eq(History.userId, req.user.id), eq(History.isFavorite, true))).orderBy(desc(History.updatedAt));
         const meta = {
             currentPage: page,
             perPage: perPage,
