@@ -10,9 +10,9 @@ app.use(routes);
 
 (async () => {
     try {  
-      const port = process.env.APP_PORT || 3000;
-      app.listen(port, () => {
-        console.log(`Server running on http://localhost:${port}`);
+      const port = process.env.PORT || 8000;
+      app.listen(port, '0.0.0.0', () => {
+        console.log(`Server running on ${port}`);
       });
     } catch (error) {
       console.error('Failed to start server:', error);

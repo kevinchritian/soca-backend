@@ -4,6 +4,13 @@ const { db } = require('../database/db');
 const { History } = require('../database/schema');
 const { uploadFile } = require('../config/storage');
 
+let model;
+const loadModel = async () => {
+    const modelUrl = process.env.MODEL_URL;
+    model = await tf.loadGraphModel(modelUrl);
+};
+loadModel();
+
 const predict = async (req, res) => {
     try {
         const image = req.file;
@@ -11,9 +18,11 @@ const predict = async (req, res) => {
             return response.error(res, 'Image is required');
         }
 
-        const modelUrl = process.env.MODEL_URL;
-        const model = await tf.loadGraphModel(modelUrl);
-        const inputSize = process.env.INPUT_SIZE;
+        if (!model) {
+            return response.error(res, 'Model not loaded yet');
+        }
+
+        const inputSize = parseInt(process.env.INPUT_SIZE);
 
         const tensor = tf.node
             .decodeJpeg(image.buffer)
@@ -30,6 +39,9 @@ const predict = async (req, res) => {
 
         const classResult = tf.argMax(prediction, 1).dataSync()[0];
         const label = classes[classResult];
+
+        tensor.dispose();
+        prediction.dispose();
 
         const result = {
             label: label,
