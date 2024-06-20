@@ -1,4 +1,6 @@
-const { connection, mssql } = require('../config/database');
+const { eq, desc, and } = require('drizzle-orm');
+const { db } = require('../database/db');
+const { History } = require('../database/schema');
 const response = require('../Utils/response');
 
 const favorite = async (req, res) => {
@@ -7,25 +9,15 @@ const favorite = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const offset = (page - 1) * perPage;
 
-        const conn = await connection();
-        const result = await conn.request()
-            .input('perPage', mssql.Int, perPage)
-            .input('offset', mssql.Int, offset)
-            .input('userId', mssql.Int, req.user.id)
-            .input('isFavorite', mssql.Bit, true)
-            .query('SELECT * FROM history WHERE userId = @userId AND isFavorite = @isFavorite ORDER BY createdAt DESC OFFSET @offset ROWS FETCH NEXT @perPage ROWS ONLY');
-
-        const count = await conn.request()
-            .input('userId', mssql.Int, req.user.id)
-            .query('SELECT COUNT(*) AS total FROM history WHERE userId = @userId AND isFavorite = 1');
-
+        const favorite = await db.select().from(History).where(and(eq(History.userId, req.user.id), eq(History.isFavorite, true))).orderBy(desc(History.updatedAt)).limit(perPage).offset(offset);
+        const count = await db.select({ id: History.id }).from(History).where(and(eq(History.userId, req.user.id), eq(History.isFavorite, true)));
         const meta = {
             currentPage: page,
             perPage: perPage,
-            totalData: count.recordset[0].total,
-            totalPage: Math.ceil(count.recordset[0].total / perPage),
+            totalData: count.length,
+            totalPage: Math.ceil(count.length / perPage),
         };
-        response.success(res, 'Get history success', result.recordset, meta);
+        return response.success(res, 'Get favorite success', favorite, meta);
     } catch (error) {
         response.internalError(res, error.message);
     }
@@ -34,12 +26,13 @@ const favorite = async (req, res) => {
 const addFavorite = async (req, res) => {
     try {
         const { id } = req.body;
-        const conn = await connection();
-        await conn.request()
-            .input('id', mssql.Int, id)
-            .input('userId', mssql.Int, req.user.id)
-            .query('UPDATE history SET isFavorite = 1 WHERE id = @id AND userId = @userId');
-        response.success(res, 'Add favorite success');
+        const history = await db.query.History.findFirst({ where: and(eq(History.id, id), eq(History.userId, req.user.id)) });
+        if (!history) {
+            return response.error(res, 'Data not found');
+        }
+
+        await db.update(History).set({ isFavorite: true }).where(and(eq(History.id, id), eq(History.userId, req.user.id)));
+        return response.success(res, 'Add favorite success');
     } catch (error) {
         response.internalError(res, error.message);
     }
@@ -48,12 +41,13 @@ const addFavorite = async (req, res) => {
 const removeFavorite = async (req, res) => {
     try {
         const { id } = req.body;
-        const conn = await connection();
-        await conn.request()
-            .input('id', mssql.Int, id)
-            .input('userId', mssql.Int, req.user.id)
-            .query('UPDATE history SET isFavorite = 0 WHERE id = @id AND userId = @userId');
-        response.success(res, 'Remove favorite success');
+        const history = await db.query.History.findFirst({ where: and(eq(History.id, id), eq(History.userId, req.user.id)) });
+        if (!history) {
+            return response.error(res, 'Data not found');
+        }
+        history.isFavorite = false;
+        await db.update(History).set({ isFavorite: false }).where(and(eq(History.id, id), eq(History.userId, req.user.id)));
+        return response.success(res, 'Remove favorite success');
     } catch (error) {
         response.internalError(res, error.message);
     }
@@ -62,16 +56,11 @@ const removeFavorite = async (req, res) => {
 const detailResult = async (req, res) => {
     try {
         const { id } = req.params;
-        const conn = await connection();
-        const result = await conn.request()
-            .input('id', mssql.Int, id)
-            .input('userId', mssql.Int, req.user.id)
-            .query('SELECT * FROM history WHERE id = @id AND userId = @userId');
-        if (result.recordset.length > 0) {
-            response.success(res, 'Get detail result success', result.recordset[0]);
-        } else {
-            response.error(res, 'Data not found', 404);
+        const history = await db.query.History.findFirst({ where: and(eq(History.id, id), eq(History.userId, req.user.id)) });
+        if (!history) {
+            return response.error(res, 'Data not found');
         }
+        return response.success(res, 'Get detail result success', history);
     } catch (error) {
         response.internalError(res, error.message);
     }

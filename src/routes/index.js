@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../controllers/authController');
-const { connection } = require('../config/database');
+const { login, register, logout } = require('../controllers/authController');
 const response = require('../Utils/response');
 const { predict } = require('../controllers/prediction');
 const authToken = require('../middleware/auth');
@@ -11,18 +10,12 @@ const { favorite, addFavorite, removeFavorite, detailResult } = require('../cont
 
 
 router.get('/', (req, res) => {
-  connection()
-    .then(() => {
-      response.success(res, 'Welcome to SOCA API');
-    })
-    .catch(error => {
-      response.internalError(res, error.message);
-    });
+  return response.success(res, 'Welcome to SOCA API');
 });
 
-router.post('/login', auth.login);
-router.post('/register', auth.register);
-router.post('/logout', authToken, auth.logout);
+router.post('/login', login);
+router.post('/register', register);
+router.post('/logout', authToken, logout);
 
 router.post('/predict', authToken, uploadConfig.single('image'), predict);
 

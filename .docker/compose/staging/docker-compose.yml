@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ../../..
+      dockerfile: .docker/file/local/app/Dockerfile
+    image: ${DOCKER_IMAGE}:${DOCKER_STAGING_TAG}
+    ports:
+      - ${DOCKER_ADDRESS}:${PORT}
+    volumes:
+      - ../../../src:/app/src
+      - ../../../package.json:/app/package.json
+      - ../../../package-lock.json:/app/package-lock.json
+      - ../../../.env:/app/.env

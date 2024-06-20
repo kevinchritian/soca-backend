@@ -1,4 +1,6 @@
-const { connection, mssql } = require('../config/database');
+const { eq, desc } = require('drizzle-orm');
+const { db } = require('../database/db');
+const { History } = require('../database/schema');
 const response = require('../Utils/response');
 
 const history = async (req, res) => {
@@ -7,24 +9,15 @@ const history = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const offset = (page - 1) * perPage;
 
-        const conn = await connection();
-        const result = await conn.request()
-            .input('perPage', mssql.Int, perPage)
-            .input('offset', mssql.Int, offset)
-            .input('userId', mssql.Int, req.user.id)
-            .query('SELECT * FROM history WHERE userId = @userId ORDER BY createdAt DESC OFFSET @offset ROWS FETCH NEXT @perPage ROWS ONLY');
-
-        const count = await conn.request()
-            .input('userId', mssql.Int, req.user.id)
-            .query('SELECT COUNT(*) AS total FROM history WHERE userId = @userId');
-
+        const histories = await db.select().from(History).where(eq(History.userId, req.user.id)).orderBy(desc(History.updatedAt)).limit(perPage).offset(offset);
+        const count = await db.select({ id: History.id }).from(History).where(eq(History.userId, req.user.id));
         const meta = {
             currentPage: page,
             perPage: perPage,
-            totalData: count.recordset[0].total,
-            totalPage: Math.ceil(count.recordset[0].total / perPage),
+            totalData: count.length,
+            totalPage: Math.ceil(count.length / perPage),
         };
-        response.success(res, 'Get history success', result.recordset, meta);
+        return response.success(res, 'Get history success', histories, meta);
     } catch (error) {
         response.internalError(res, error.message);
     }
